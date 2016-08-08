@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="com-leonkenneth-documentpicker"
+    version="0.3.0">
+    <author></author>
+    <name>DocumentPicker</name>
+    <description>Cordova DocumentPicker Plugin</description>
+    <license>Apache 2.0</license>
+    <keywords>cordova,documentpicker</keywords>
+    <dependency id="cordova-plugin-device" version=">=1.0.0" />
+
+    <js-module src="www/DocumentPicker.js" name="DocumentPicker">
+        <clobbers target="navigator.DocumentPicker" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="DocumentPicker">
+                <param name="android-package" value="com.leonkenneth.DocumentPicker.DocumentPickerPlugin"/>
+            </feature>
+        </config-file>
+
+        <source-file src="src/android/DocumentPickerPlugin.java" target-dir="src/com/leonkenneth/DocumentPicker/" />
+
+    </platform>
+
+</plugin>
