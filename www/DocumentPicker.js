@@ -4,6 +4,10 @@ DocumentPicker.prototype.pick = function(success, failure) {
   cordova.exec(success, failure, "DocumentPicker", "pick", []);
 };
 
+DocumentPicker.prototype.getMetadata = function(url, success, failure) {
+  cordova.exec(success, failure, "DocumentPicker", "getMetadata", [url]);
+};
+
 cordova.addConstructor(function() {
 
   if (!window.Cordova) {

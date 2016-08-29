@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.PhoneLookup;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
@@ -31,26 +32,76 @@ public class DocumentPickerPlugin extends CordovaPlugin {
     private Context context;
     private CallbackContext callbackContext;
 
-    private static final int PICK_DOCUMENT = 1;
+    private static final int PICK = 1;
 
     @Override
     public boolean execute(String action, JSONArray data,
                            CallbackContext callbackContext) {
         this.callbackContext = callbackContext;
         this.context = cordova.getActivity().getApplicationContext();
-        if (action.equals("pick")) {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.setType("*/*");
 
-            cordova.startActivityForResult(this, intent, PICK_DOCUMENT);
+        try {
+            if (action.equals("pick")) {
+                startPick();
+                return true;
+            }
 
-            PluginResult r = new PluginResult(PluginResult.Status.NO_RESULT);
-            r.setKeepCallback(true);
-            callbackContext.sendPluginResult(r);
-            return true;
+            if (action.equals("getMetadata")) {
+                getMetadata(data.getString(0));
+                return true;
+            }
+        } catch (Exception e) {
+            this.callbackContext.error(e.getMessage());
         }
 
         return false;
+    }
+
+    private void getMetadata(String url) throws JSONException {
+        Uri uri = Uri.parse(url);
+
+        String fileName = null;
+
+        if (uri.getScheme().equals("content")) {
+          Cursor cursor = this.context.getContentResolver().query(uri, null, null, null, null);
+          try {
+            if (cursor != null && cursor.moveToFirst()) {
+              fileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+            }
+          } finally {
+            cursor.close();
+          }
+        }
+
+        if (fileName == null) {
+          fileName = uri.getPath();
+          int cut = fileName.lastIndexOf('/');
+          if (cut != -1) {
+            fileName = fileName.substring(cut + 1);
+          }
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("fileName", fileName);
+
+        this.callbackContext.success(result);
+    }
+
+    private void startPick() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("*/*");
+
+        this.cordova.startActivityForResult(this, intent, PICK);
+
+        PluginResult r = new PluginResult(PluginResult.Status.NO_RESULT);
+        r.setKeepCallback(true);
+        this.callbackContext.sendPluginResult(r);
+    }
+
+    private void onPickSuccess(Intent data) {
+        Uri documentUri = data.getData();
+
+        this.callbackContext.success(documentUri.toString());
     }
 
     @Override
@@ -58,17 +109,8 @@ public class DocumentPickerPlugin extends CordovaPlugin {
         if (resultCode != Activity.RESULT_OK)
             return;
 
-        Uri documentUri = data.getData();
-
-        try {
-            JSONObject result = new JSONObject();
-            result.put("url", documentUri.toString());
-
-            callbackContext.success(result);
-
-        } catch (Exception e) {
-            Log.v("DocumentPicker", "Document picking failed: " + e.getMessage());
-            callbackContext.error("Document picking failed: " + e.getMessage());
+        if (requestCode == PICK) {
+          onPickSuccess(data);
         }
     }
 }
