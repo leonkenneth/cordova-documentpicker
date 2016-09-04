@@ -42,7 +42,7 @@ public class DocumentPickerPlugin extends CordovaPlugin {
 
         try {
             if (action.equals("pick")) {
-                startPick();
+                startPick(data.getJSONArray(0));
                 return true;
             }
 
@@ -87,9 +87,21 @@ public class DocumentPickerPlugin extends CordovaPlugin {
         this.callbackContext.success(result);
     }
 
-    private void startPick() {
+    private String[] getMimeTypesFromJSONArray(JSONArray mimeTypes) throws JSONException {
+      int length = mimeTypes.length();
+      String[] result = new String[length];
+
+      for (int i = 0 ; i < length ; i++) {
+        result[i] = mimeTypes.getString(i);
+      }
+
+      return result;
+    }
+
+    private void startPick(JSONArray mimeTypes) throws JSONException {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, getMimeTypesFromJSONArray(mimeTypes));
 
         this.cordova.startActivityForResult(this, intent, PICK);
 
