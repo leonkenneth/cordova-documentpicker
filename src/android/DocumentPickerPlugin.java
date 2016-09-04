@@ -12,6 +12,7 @@ import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.PhoneLookup;
 import android.provider.OpenableColumns;
 import android.util.Log;
+import android.util.Base64;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -25,7 +26,9 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 
 public class DocumentPickerPlugin extends CordovaPlugin {
 
@@ -46,8 +49,8 @@ public class DocumentPickerPlugin extends CordovaPlugin {
                 return true;
             }
 
-            if (action.equals("getMetadata")) {
-                getMetadata(data.getString(0));
+            if (action.equals("get")) {
+                get(data.getString(0));
                 return true;
             }
         } catch (Exception e) {
@@ -57,9 +60,7 @@ public class DocumentPickerPlugin extends CordovaPlugin {
         return false;
     }
 
-    private void getMetadata(String url) throws JSONException {
-        Uri uri = Uri.parse(url);
-
+    private String getFileName(Uri uri) {
         String fileName = null;
 
         if (uri.getScheme().equals("content")) {
@@ -81,8 +82,35 @@ public class DocumentPickerPlugin extends CordovaPlugin {
           }
         }
 
+        return fileName;
+    }
+
+    private String getFileContent(Uri uri) throws FileNotFoundException, IOException {
+      InputStream inputStream = this.context.getContentResolver().openInputStream(uri);
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      int readCount;
+      byte[] data = new byte[16384];
+
+      while ((readCount = inputStream.read(data, 0, data.length)) != -1) {
+        buffer.write(data, 0, readCount);
+      }
+
+      buffer.flush();
+
+      byte[] byteArray = buffer.toByteArray();
+
+      return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
+    private void get(String url) throws JSONException, FileNotFoundException, IOException {
+        Uri uri = Uri.parse(url);
+
+        String name = getFileName(uri);
+        String contentBase64 = getFileContent(uri);
+
         JSONObject result = new JSONObject();
-        result.put("fileName", fileName);
+        result.put("name", name);
+        result.put("contentBase64", contentBase64);
 
         this.callbackContext.success(result);
     }
